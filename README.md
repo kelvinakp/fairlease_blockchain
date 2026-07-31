@@ -11,8 +11,8 @@ FairLease locks a security deposit in a smart contract so neither landlord nor t
 | Name | Student ID | Focus |
 |------|------------|--------|
 | Aung Kyaw Phyo | 6708142 | `FairLease.sol`, `LeaseCredit.sol` |
-| Nyi Min Hein | 6709560 | `LeaseCredential.sol`, `LeaseCourt.sol` |
-| Swan Htet Naing | 6708128 | DApp (`web/`), Chainlink oracle integration |
+| Nyi Min Hein | 6709560 | DApp (`web/`), Chainlink oracle integration |
+| Swan Htet Naing | 6708128 | `LeaseCredential.sol`, `LeaseCourt.sol` |
 
 Course project: Rangsit University · CSC445 Blockchain
 
