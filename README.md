@@ -4,6 +4,8 @@ Trustless rental-deposit escrow on **Ethereum Sepolia**.
 
 FairLease locks a security deposit in a smart contract so neither landlord nor tenant can take the funds alone. The landlord sets the deposit in USD; the tenant funds the matching ETH using a Chainlink price feed. Parties can settle together, or a community court of LCRED jurors decides the outcome. Each activated lease also mints a soulbound NFT receipt.
 
+**Live DApp:** [https://fairlease.surge.sh](https://fairlease.surge.sh)
+
 ---
 
 ## Team
@@ -79,7 +81,9 @@ Addresses are also listed in [`web/config.js`](web/config.js).
 
 ## Run the DApp
 
-Requirements: MetaMask, Sepolia ETH, Node.js (for a local static server).
+**Live:** [https://fairlease.surge.sh](https://fairlease.surge.sh) — connect MetaMask on **Sepolia**.
+
+To run locally (MetaMask, Sepolia ETH, Node.js):
 
 ```bash
 cd web
