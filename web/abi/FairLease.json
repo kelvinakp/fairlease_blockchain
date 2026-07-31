@@ -1,0 +1,198 @@
+[
+  {
+    "inputs": [{"internalType": "address", "name": "priceFeed_", "type": "address"}],
+    "stateMutability": "nonpayable",
+    "type": "constructor"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {"indexed": true, "internalType": "uint256", "name": "agreementId", "type": "uint256"},
+      {"indexed": true, "internalType": "address", "name": "landlord", "type": "address"},
+      {"indexed": true, "internalType": "address", "name": "tenant", "type": "address"},
+      {"indexed": false, "internalType": "uint256", "name": "depositUsdCents", "type": "uint256"},
+      {"indexed": false, "internalType": "bytes32", "name": "leaseHash", "type": "bytes32"}
+    ],
+    "name": "AgreementCreated",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {"indexed": true, "internalType": "uint256", "name": "agreementId", "type": "uint256"},
+      {"indexed": false, "internalType": "uint256", "name": "depositWei", "type": "uint256"},
+      {"indexed": false, "internalType": "int256", "name": "ethUsdPrice", "type": "int256"}
+    ],
+    "name": "AgreementFunded",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {"indexed": true, "internalType": "uint256", "name": "agreementId", "type": "uint256"},
+      {"indexed": false, "internalType": "uint256", "name": "credentialTokenId", "type": "uint256"}
+    ],
+    "name": "AgreementActivated",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {"indexed": true, "internalType": "uint256", "name": "agreementId", "type": "uint256"},
+      {"indexed": false, "internalType": "uint256", "name": "disputeId", "type": "uint256"}
+    ],
+    "name": "DisputeRaised",
+    "type": "event"
+  },
+  {
+    "inputs": [{"internalType": "address", "name": "tenant", "type": "address"}, {"internalType": "uint256", "name": "depositUsdCents", "type": "uint256"}, {"internalType": "bytes32", "name": "leaseHash", "type": "bytes32"}],
+    "name": "createAgreement",
+    "outputs": [{"internalType": "uint256", "name": "agreementId", "type": "uint256"}],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [{"internalType": "uint256", "name": "agreementId", "type": "uint256"}],
+    "name": "fundAgreement",
+    "outputs": [],
+    "stateMutability": "payable",
+    "type": "function"
+  },
+  {
+    "inputs": [{"internalType": "uint256", "name": "agreementId", "type": "uint256"}],
+    "name": "activateAgreement",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [{"internalType": "uint256", "name": "agreementId", "type": "uint256"}, {"internalType": "uint256", "name": "landlordClaimWei", "type": "uint256"}],
+    "name": "proposeSettlement",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [{"internalType": "uint256", "name": "agreementId", "type": "uint256"}],
+    "name": "acceptSettlement",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [{"internalType": "uint256", "name": "agreementId", "type": "uint256"}],
+    "name": "raiseDispute",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [{"internalType": "uint256", "name": "agreementId", "type": "uint256"}],
+    "name": "cancelAgreement",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [{"internalType": "uint256", "name": "agreementId", "type": "uint256"}],
+    "name": "getAgreement",
+    "outputs": [
+      {
+        "components": [
+          {"internalType": "address", "name": "landlord", "type": "address"},
+          {"internalType": "address", "name": "tenant", "type": "address"},
+          {"internalType": "uint256", "name": "depositUsdCents", "type": "uint256"},
+          {"internalType": "uint256", "name": "depositWei", "type": "uint256"},
+          {"internalType": "uint256", "name": "landlordClaimWei", "type": "uint256"},
+          {"internalType": "bytes32", "name": "leaseHash", "type": "bytes32"},
+          {"internalType": "uint256", "name": "credentialTokenId", "type": "uint256"},
+          {"internalType": "uint256", "name": "disputeId", "type": "uint256"},
+          {"internalType": "uint64", "name": "createdAt", "type": "uint64"},
+          {"internalType": "uint64", "name": "fundedAt", "type": "uint64"},
+          {"internalType": "uint64", "name": "activatedAt", "type": "uint64"},
+          {"internalType": "uint8", "name": "status", "type": "uint8"}
+        ],
+        "internalType": "struct FairLease.Agreement",
+        "name": "",
+        "type": "tuple"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [{"internalType": "uint256", "name": "depositUsdCents", "type": "uint256"}],
+    "name": "quoteDepositWei",
+    "outputs": [{"internalType": "uint256", "name": "weiAmount", "type": "uint256"}, {"internalType": "int256", "name": "answer", "type": "int256"}],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "getLatestPrice",
+    "outputs": [{"internalType": "int256", "name": "answer", "type": "int256"}, {"internalType": "uint8", "name": "decimals_", "type": "uint8"}, {"internalType": "uint256", "name": "updatedAt", "type": "uint256"}],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [{"internalType": "uint256", "name": "agreementId", "type": "uint256"}],
+    "name": "previewFund",
+    "outputs": [
+      {"internalType": "uint256", "name": "requiredWei", "type": "uint256"},
+      {"internalType": "int256", "name": "ethUsdAnswer", "type": "int256"},
+      {"internalType": "uint8", "name": "decimals_", "type": "uint8"},
+      {"internalType": "uint256", "name": "updatedAt", "type": "uint256"}
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "nextAgreementId",
+    "outputs": [{"internalType": "uint256", "name": "", "type": "uint256"}],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "priceFeed",
+    "outputs": [{"internalType": "address", "name": "", "type": "address"}],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [{"internalType": "address", "name": "feed", "type": "address"}],
+    "name": "setPriceFeed",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [{"internalType": "address", "name": "credential_", "type": "address"}],
+    "name": "setCredential",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [{"internalType": "address", "name": "court_", "type": "address"}],
+    "name": "setCourt",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [{"internalType": "address", "name": "credit_", "type": "address"}],
+    "name": "setCredit",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [{"internalType": "uint256", "name": "agreementId", "type": "uint256"}, {"internalType": "uint8", "name": "rulingRaw", "type": "uint8"}],
+    "name": "applyRuling",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  }
+]

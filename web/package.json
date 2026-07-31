@@ -1,0 +1,7 @@
+{
+  "name": "fairlease-web",
+  "private": true,
+  "scripts": {
+    "start": "npx --yes serve ."
+  }
+}

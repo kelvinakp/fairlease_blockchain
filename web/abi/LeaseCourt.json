@@ -1,0 +1,80 @@
+[
+  {
+    "inputs": [{"internalType": "address", "name": "credit_", "type": "address"}],
+    "stateMutability": "nonpayable",
+    "type": "constructor"
+  },
+  {
+    "inputs": [{"internalType": "uint256", "name": "disputeId", "type": "uint256"}, {"internalType": "uint8", "name": "choice", "type": "uint8"}],
+    "name": "vote",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [{"internalType": "uint256", "name": "disputeId", "type": "uint256"}],
+    "name": "finalize",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [{"internalType": "uint256", "name": "disputeId", "type": "uint256"}],
+    "name": "getDispute",
+    "outputs": [
+      {"internalType": "uint256", "name": "agreementId", "type": "uint256"},
+      {"internalType": "address", "name": "landlord", "type": "address"},
+      {"internalType": "address", "name": "tenant", "type": "address"},
+      {"internalType": "uint256", "name": "deadline", "type": "uint256"},
+      {"internalType": "uint256", "name": "tenantVotes", "type": "uint256"},
+      {"internalType": "uint256", "name": "landlordVotes", "type": "uint256"},
+      {"internalType": "uint256", "name": "splitVotes", "type": "uint256"},
+      {"internalType": "bool", "name": "finalized", "type": "bool"},
+      {"internalType": "uint8", "name": "ruling", "type": "uint8"}
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [{"internalType": "uint256", "name": "agreementId", "type": "uint256"}],
+    "name": "agreementToDispute",
+    "outputs": [{"internalType": "uint256", "name": "", "type": "uint256"}],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [{"internalType": "uint256", "name": "disputeId", "type": "uint256"}, {"internalType": "address", "name": "account", "type": "address"}],
+    "name": "hasVoted",
+    "outputs": [{"internalType": "bool", "name": "", "type": "bool"}],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [{"internalType": "address", "name": "escrow_", "type": "address"}],
+    "name": "setEscrow",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [{"internalType": "uint256", "name": "seconds_", "type": "uint256"}],
+    "name": "setVotingPeriod",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "votingPeriod",
+    "outputs": [{"internalType": "uint256", "name": "", "type": "uint256"}],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "jurorReward",
+    "outputs": [{"internalType": "uint256", "name": "", "type": "uint256"}],
+    "stateMutability": "view",
+    "type": "function"
+  }
+]

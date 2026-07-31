@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FairLease — Oracle-Priced Rental Escrow</title>
+  <link rel="stylesheet" href="./styles.css" />
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.1/dist/cdn.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/ethers@6.13.4/dist/ethers.umd.min.js"></script>
+  <script src="./config.js"></script>
+  <script src="./app.js"></script>
+</head>
+<body>
+  <div class="wrap" x-data="fairLeaseApp()" x-init="init()" x-cloak>
+    <header>
+      <div class="brand">
+        <div class="eyebrow">BLOCKCHAIN RENTAL ESCROW</div>
+        <h1>FairLease</h1>
+        <p>
+          Lock a rental deposit safely, document the lease with an NFT receipt,
+          and resolve disagreements through community voting.
+        </p>
+      </div>
+      <div class="wallet-box">
+        <div class="wallet-heading">
+          <span class="connection-dot" :class="account && chainOk ? 'online' : ''"></span>
+          <strong x-text="account && chainOk ? 'Wallet connected' : 'Connect your wallet'"></strong>
+        </div>
+        <div class="row wallet-actions">
+          <button
+            class="btn wallet-button"
+            @click="connect()"
+            :disabled="connecting"
+            x-text="connecting ? 'Waiting for MetaMask…' : (account ? 'Reconnect wallet' : 'Connect MetaMask')">
+          </button>
+          <button
+            class="btn secondary disconnect-button"
+            x-show="account"
+            @click="disconnect()"
+            :disabled="connecting">
+            Disconnect
+          </button>
+        </div>
+        <template x-if="!walletAvailable">
+          <p class="wallet-help">MetaMask was not detected. Install the extension, then refresh this page.</p>
+        </template>
+        <template x-if="account">
+          <div>
+            <div class="muted">Account</div>
+            <div class="addr" x-text="account"></div>
+            <div class="muted role-line">Role: <strong x-text="currentRole"></strong></div>
+          </div>
+        </template>
+        <div style="margin-top:8px" class="row">
+          <span class="pill" :class="chainOk ? 'ok' : 'warn'" x-text="chainOk ? 'Sepolia network' : 'Sepolia required'"></span>
+          <span class="pill" x-text="'ETH/USD ' + ethUsdDisplay"></span>
+        </div>
+        <div style="margin-top:8px" class="muted">
+          LCRED: <span class="mono" x-text="creditBalance"></span>
+          <span class="pill" :class="jurorStatusClass" x-text="jurorStatusLabel"></span>
+        </div>
+      </div>
+    </header>
+
+    <section class="how-it-works" aria-label="How FairLease works">
+      <div class="step"><span>1</span><div><strong>Create</strong><small>Landlord sets tenant and USD deposit</small></div></div>
+      <div class="step"><span>2</span><div><strong>Fund</strong><small>Tenant locks the ETH equivalent</small></div></div>
+      <div class="step"><span>3</span><div><strong>Activate</strong><small>Tenant receives an NFT receipt</small></div></div>
+      <div class="step"><span>4</span><div><strong>Settle</strong><small>Agree directly or ask jurors to vote</small></div></div>
+    </section>
+
+    <template x-if="!contractsConfigured()">
+      <div class="card" style="margin-bottom:16px">
+        <h2>Deploy addresses required</h2>
+        <p class="muted">
+          Paste Sepolia contract addresses into <span class="mono">web/config.js</span>
+          after following <span class="mono">docs/deployment.md</span>.
+        </p>
+      </div>
+    </template>
+
+    <div class="tabs">
+      <button class="tab" :class="tab === 'landlord' && 'active'" @click="tab = 'landlord'">Landlord</button>
+      <button class="tab" :class="tab === 'tenant' && 'active'" @click="tab = 'tenant'">Tenant</button>
+      <button class="tab" :class="tab === 'court' && 'active'" @click="tab = 'court'">Juror court</button>
+      <button class="tab" :class="tab === 'nft' && 'active'" @click="tab = 'nft'">NFT receipt</button>
+    </div>
+
+    <div class="grid">
+      <section class="card">
+        <div x-show="tab === 'landlord'">
+          <div class="section-heading">
+            <span class="section-icon">L</span>
+            <div><h2>Landlord workspace</h2><p>Create an agreement, activate it after funding, and propose a settlement.</p></div>
+          </div>
+          <div class="row">
+            <label>Tenant address
+              <input x-model="tenantAddress" placeholder="0x..." />
+            </label>
+          </div>
+          <div class="row">
+            <label>Deposit (USD)
+              <input x-model="depositUsd" type="number" min="1" step="1" />
+            </label>
+          </div>
+          <div class="row">
+            <label>Lease terms (hashed on-chain; not stored as plain text)
+              <textarea x-model="leaseTerms"></textarea>
+            </label>
+          </div>
+          <div class="row">
+            <button class="btn" @click="createAgreement()" :disabled="!account || !chainOk || busy">Create agreement</button>
+            <button class="btn secondary" @click="cancelAgreement()" :disabled="!account || !chainOk || busy">Cancel draft</button>
+          </div>
+
+          <h3>Activate / settle</h3>
+          <div class="row">
+            <label>Agreement ID
+              <input x-model="agreementId" />
+            </label>
+            <label>Landlord claim (ETH) for settlement
+              <input
+                x-model="landlordClaimEth"
+                type="number"
+                min="0"
+                step="any"
+                :max="agreement ? agreement.depositEth : null"
+                :class="agreement && !isSettlementClaimValid() ? 'input-error' : ''"
+                placeholder="Load agreement to see maximum" />
+            </label>
+          </div>
+          <template x-if="agreement">
+            <div class="settlement-summary">
+              <div class="summary-header">
+                <div>
+                  <span class="summary-label">Available escrow</span>
+                  <strong x-text="agreement.depositEth + ' ETH'"></strong>
+                </div>
+                <span class="pill" x-text="'Original deposit $' + agreement.depositUsd"></span>
+              </div>
+              <div class="settlement-breakdown">
+                <div>
+                  <span>Landlord receives</span>
+                  <strong x-text="(landlordClaimEth || '0') + ' ETH'"></strong>
+                </div>
+                <div>
+                  <span>Tenant receives</span>
+                  <strong x-text="getTenantRefundEth() + (getTenantRefundEth() === 'Invalid claim' ? '' : ' ETH')"></strong>
+                </div>
+              </div>
+              <div class="claim-presets">
+                <span>Quick claim:</span>
+                <button type="button" class="preset-button" @click="setClaimShare(0)">0%</button>
+                <button type="button" class="preset-button" @click="setClaimShare(5000)">50%</button>
+                <button type="button" class="preset-button" @click="setClaimShare(10000)">100% max</button>
+              </div>
+            </div>
+          </template>
+          <template x-if="!agreement">
+            <p class="field-help">Enter an Agreement ID and click “Refresh details” to display the exact ETH locked in escrow.</p>
+          </template>
+          <div class="row">
+            <button class="btn ok" @click="activateAgreement()" :disabled="!account || !chainOk || busy">Activate &amp; mint NFT</button>
+            <button class="btn warn" @click="proposeSettlement()" :disabled="!account || !chainOk || busy">Propose settlement</button>
+            <button class="btn danger" @click="raiseDispute()" :disabled="!account || !chainOk || busy">Raise dispute</button>
+            <button class="btn secondary" @click="loadAgreement()" :disabled="!account || !chainOk || busy">Refresh details</button>
+          </div>
+        </div>
+
+        <div x-show="tab === 'tenant'">
+          <div class="section-heading">
+            <span class="section-icon">T</span>
+            <div><h2>Tenant workspace</h2><p>Check the Chainlink quote, fund the deposit, and respond to settlement.</p></div>
+          </div>
+          <div class="row">
+            <label>Agreement ID
+              <input x-model="agreementId" />
+            </label>
+          </div>
+          <div class="row">
+            <button class="btn secondary" @click="quoteFund()" :disabled="!account || !chainOk || busy">Check ETH amount</button>
+            <button class="btn" @click="fundAgreement()" :disabled="!account || !chainOk || busy">Fund deposit</button>
+            <button class="btn ok" @click="acceptSettlement()" :disabled="!account || !chainOk || busy">Accept settlement</button>
+            <button class="btn danger" @click="raiseDispute()" :disabled="!account || !chainOk || busy">Dispute settlement</button>
+          </div>
+        </div>
+
+        <div x-show="tab === 'court'">
+          <div class="section-heading">
+            <span class="section-icon">J</span>
+            <div>
+              <h2>Juror court</h2>
+              <p>Holders with enough LCRED can vote once. Landlord and tenant earn LCRED when a lease ends, but they cannot vote on their own dispute — use a separate juror wallet.</p>
+            </div>
+          </div>
+          <div class="row">
+            <label>Dispute ID
+              <input x-model="disputeId" />
+            </label>
+            <label>Vote
+              <select x-model="voteChoice">
+                <option value="1">TenantWins</option>
+                <option value="2">LandlordWins</option>
+                <option value="3">Split</option>
+              </select>
+            </label>
+          </div>
+
+          <template x-if="dispute">
+            <div class="countdown-card" :class="countdownClass">
+              <div class="countdown-top">
+                <div>
+                  <span class="summary-label">Voting timer</span>
+                  <strong x-text="countdownLabel"></strong>
+                </div>
+                <span class="pill" :class="votingOpen ? 'ok' : (votingClosed ? 'warn' : '')"
+                  x-text="dispute.finalized ? 'Finalized' : (votingOpen ? 'Voting open' : 'Ready to finalize')">
+                </span>
+              </div>
+              <div class="countdown-meta">
+                <span x-text="'Window: ' + (votingPeriodSeconds ? formatDuration(votingPeriodSeconds) : '-')"></span>
+                <span x-text="'Ends: ' + dispute.deadlineLocal"></span>
+                <span x-text="'Seconds left: ' + secondsLeft"></span>
+              </div>
+              <div class="countdown-bar" x-show="!dispute.finalized">
+                <div class="countdown-fill" :style="'width:' + countdownProgress + '%'"></div>
+              </div>
+            </div>
+          </template>
+
+          <template x-if="voteBlockReason && !canVoteOnDispute">
+            <p class="field-help" x-text="voteBlockReason"></p>
+          </template>
+          <template x-if="finalizeBlockReason && !canFinalizeDispute && dispute && !dispute.finalized">
+            <p class="field-help" x-text="finalizeBlockReason"></p>
+          </template>
+          <div class="row">
+            <button class="btn" @click="vote()" :disabled="!canVoteOnDispute">Submit vote</button>
+            <button class="btn warn" @click="finalizeDispute()" :disabled="!canFinalizeDispute">Finalize result</button>
+            <button class="btn secondary" @click="loadDispute()" :disabled="!account || !chainOk || busy">Refresh dispute</button>
+            <button class="btn secondary" @click="refreshCredit()" :disabled="!account || !chainOk || busy">Refresh LCRED</button>
+          </div>
+          <template x-if="dispute">
+            <div class="kv">
+              <span>Agreement</span><span x-text="dispute.agreementId"></span>
+              <span>Deadline</span><span x-text="dispute.deadlineLocal"></span>
+              <span>Time left</span><span x-text="dispute.finalized ? 'Done' : formatDuration(secondsLeft)"></span>
+              <span>Votes T / L / S</span>
+              <span x-text="dispute.tenantVotes + ' / ' + dispute.landlordVotes + ' / ' + dispute.splitVotes"></span>
+              <span>Finalized</span><span x-text="dispute.finalized"></span>
+              <span>Ruling</span><span x-text="dispute.rulingLabel"></span>
+              <span>Your status</span><span x-text="jurorStatusLabel"></span>
+            </div>
+          </template>
+        </div>
+
+        <div x-show="tab === 'nft'">
+          <div class="section-heading">
+            <span class="section-icon">N</span>
+            <div><h2>NFT lease receipt</h2><p>Minted when a lease activates. It cannot be sold or transferred.</p></div>
+          </div>
+          <div class="row">
+            <label>Token ID
+              <input x-model="credentialId" />
+            </label>
+          </div>
+          <div class="row">
+            <button class="btn" @click="loadCredential()" :disabled="!account || !chainOk || busy">View NFT receipt</button>
+          </div>
+          <template x-if="credential">
+            <div>
+              <div class="kv">
+                <span>Owner</span><span x-text="credential.owner"></span>
+                <span>Agreement</span><span x-text="credential.agreementId"></span>
+                <span>Deposit (cents)</span><span x-text="credential.depositUsdCents"></span>
+                <span>Status</span><span x-text="credential.statusLabel"></span>
+                <span>Landlord</span><span x-text="credential.landlord"></span>
+                <span>Tenant</span><span x-text="credential.tenant"></span>
+              </div>
+              <p class="muted">tokenURI (on-chain JSON data URI):</p>
+              <textarea readonly x-text="credential.uri" style="width:100%;min-height:110px"></textarea>
+            </div>
+          </template>
+        </div>
+
+        <div class="status-line" :class="statusKind" role="status" aria-live="polite">
+          <span class="status-dot"></span>
+          <span x-text="statusMsg"></span>
+        </div>
+        <template x-if="lastTx">
+          <p class="footer">Last tx:
+            <a :href="explorerTx(lastTx)" target="_blank" rel="noopener" x-text="lastTx"></a>
+          </p>
+        </template>
+      </section>
+
+      <aside class="card">
+        <h2>Agreement inspector</h2>
+        <div class="row">
+          <label>Agreement ID
+            <input x-model="agreementId" />
+          </label>
+        </div>
+        <div class="row">
+          <button class="btn secondary" @click="loadAgreement()" :disabled="!account || !chainOk || busy">Load agreement</button>
+          <button class="btn secondary" @click="refreshOracle()" :disabled="!account || !chainOk || busy">Refresh oracle</button>
+        </div>
+
+        <template x-if="agreement">
+          <div>
+            <div class="kv">
+              <span>Status</span><span x-text="agreement.statusLabel"></span>
+              <span>Landlord</span><span x-text="agreement.landlord"></span>
+              <span>Tenant</span><span x-text="agreement.tenant"></span>
+              <span>USD cents</span><span x-text="agreement.depositUsdCents"></span>
+              <span>Deposit ETH</span><span x-text="agreement.depositEth"></span>
+              <span>NFT token</span><span x-text="agreement.credentialTokenId"></span>
+              <span>Dispute</span><span x-text="agreement.disputeId"></span>
+              <span>Lease hash</span><span x-text="agreement.leaseHash"></span>
+            </div>
+            <template x-if="agreement.statusLabel === 'Disputed' && dispute">
+              <div class="field-help" style="margin-top:10px">
+                Dispute voting:
+                <strong x-text="dispute.finalized ? 'finalized' : formatDuration(secondsLeft) + ' left'"></strong>
+              </div>
+            </template>
+          </div>
+        </template>
+        <template x-if="!agreement">
+          <p class="muted">No agreement loaded yet.</p>
+        </template>
+
+        <h3>Contract links</h3>
+        <template x-if="contractsConfigured()">
+          <div class="kv">
+            <span>FairLease</span>
+            <span><a :href="explorerAddress(FAIRLEASE_CONFIG.contracts.fairLease)" target="_blank" x-text="shortAddr(FAIRLEASE_CONFIG.contracts.fairLease)"></a></span>
+            <span>Court</span>
+            <span><a :href="explorerAddress(FAIRLEASE_CONFIG.contracts.leaseCourt)" target="_blank" x-text="shortAddr(FAIRLEASE_CONFIG.contracts.leaseCourt)"></a></span>
+            <span>Credit</span>
+            <span><a :href="explorerAddress(FAIRLEASE_CONFIG.contracts.leaseCredit)" target="_blank" x-text="shortAddr(FAIRLEASE_CONFIG.contracts.leaseCredit)"></a></span>
+            <span>Credential</span>
+            <span><a :href="explorerAddress(FAIRLEASE_CONFIG.contracts.leaseCredential)" target="_blank" x-text="shortAddr(FAIRLEASE_CONFIG.contracts.leaseCredential)"></a></span>
+            <span>ETH/USD feed</span>
+            <span><a :href="explorerAddress(FAIRLEASE_CONFIG.ethUsdFeed)" target="_blank" x-text="shortAddr(FAIRLEASE_CONFIG.ethUsdFeed)"></a></span>
+          </div>
+        </template>
+      </aside>
+    </div>
+
+    <p class="footer">
+      FairLease · Trustless rental deposit escrow on Sepolia · Chainlink oracle · Soulbound NFT · Community dispute court
+    </p>
+  </div>
+</body>
+</html>
+
