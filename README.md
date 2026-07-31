@@ -127,4 +127,4 @@ OpenZeppelin imports use GitHub URLs suitable for Remix.
 
 ## License
 
-MIT (see SPDX headers in contract sources).
+MIT.
